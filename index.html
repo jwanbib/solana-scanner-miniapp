@@ -343,8 +343,73 @@ function showPage(id, button) {
 
 async function refreshData() {
   const message = document.getElementById("message");
-  message.textContent =
-    "الواجهة جاهزة، لكن الاتصال ببيانات البوت لم يُفعّل بعد.";
+  message.textContent = "⏳ جارٍ تحميل بيانات المحاكاة...";
+
+  try {
+    const response = await fetch("http://127.0.0.1:8787/api/paper", {
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    const data = await response.json();
+    const money = value =>
+      "$" + Number(value || 0).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
+    document.getElementById("balance").textContent =
+      money(data.initial_balance);
+
+    document.getElementById("cash").textContent =
+      money(data.cash);
+
+    const pnl = document.getElementById("pnl");
+    pnl.textContent = money(data.realized_pnl);
+    pnl.classList.toggle("red", Number(data.realized_pnl) < 0);
+    pnl.classList.toggle("green", Number(data.realized_pnl) >= 0);
+
+    document.getElementById("open").textContent = data.open_trades;
+    document.getElementById("closed").textContent = data.closed_trades;
+
+    const positions = document.getElementById("positions");
+
+    if (!data.positions || data.positions.length === 0) {
+      positions.className = "empty";
+      positions.textContent = "📭 لا توجد صفقات مفتوحة حاليًا.";
+    } else {
+      positions.className = "";
+      positions.replaceChildren();
+
+      data.positions.forEach(pos => {
+        const card = document.createElement("div");
+        card.className = "position-item";
+
+        const title = document.createElement("h3");
+        title.textContent =
+          (pos.name || "عملة غير معروفة") +
+          " (" + (pos.symbol || "—") + ")";
+
+        const details = document.createElement("div");
+        details.textContent =
+          "سعر الدخول: " + Number(pos.entry_price).toPrecision(8) +
+          " | وقف الخسارة: " + Number(pos.stop_price).toPrecision(8) +
+          " | الهدف: " + Number(pos.target_price).toPrecision(8);
+
+        card.append(title, details);
+        positions.appendChild(card);
+      });
+    }
+
+    message.textContent =
+      "✅ تم تحديث بيانات المحاكاة بنجاح. التداول الحقيقي مغلق.";
+  } catch (error) {
+    message.textContent =
+      "⚠️ تعذر الاتصال بالبيانات المحلية. تأكد أن API تعمل على الهاتف.";
+  }
 }
 </script>
 
