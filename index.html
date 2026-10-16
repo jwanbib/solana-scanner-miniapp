@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0b1020">
+<title>Solana Scanner</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+:root {
+  --bg: #0b1020;
+  --panel: #131b2e;
+  --border: #26324a;
+  --text: #f0f4ff;
+  --muted: #93a2bd;
+  --green: #39d98a;
+  --red: #ff647c;
+  --purple: #8b7cff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+  padding: 18px 14px 95px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.brand {
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.badge {
+  background: #153629;
+  color: var(--green);
+  padding: 7px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 5px;
+}
+
+h2 {
+  font-size: 16px;
+  margin: 22px 0 12px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.balance {
+  background: linear-gradient(135deg, #242451, #142b40);
+  border: 1px solid #343966;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.amount {
+  font-size: 30px;
+  font-weight: 800;
+  direction: ltr;
+  text-align: right;
+  margin: 10px 0;
+}
+
+.green { color: var(--green); }
+.red { color: var(--red); }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stat {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 14px 12px;
+}
+
+.stat-icon { font-size: 21px; }
+
+.stat-value {
+  font-size: 19px;
+  font-weight: 750;
+  margin: 9px 0 4px;
+  direction: ltr;
+  text-align: right;
+}
+
+.coin {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.coin-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  background: #282448;
+  border-radius: 13px;
+  font-size: 20px;
+}
+
+.coin-info { flex: 1; min-width: 0; }
+
+.coin-name { font-weight: 700; font-size: 14px; }
+
+.coin-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 22px 5px;
+  font-size: 13px;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.primary {
+  background: var(--purple);
+  color: white;
+  width: 100%;
+  border-radius: 12px;
+  padding: 13px;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+.notice {
+  color: var(--muted);
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.8;
+  margin-top: 22px;
+}
+
+.nav {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  background: #101729;
+  border-top: 1px solid var(--border);
+  padding: 10px 5px calc(10px + env(safe-area-inset-bottom));
+}
+
+.nav button {
+  background: transparent;
+  color: var(--muted);
+  padding: 7px 1px;
+  font-size: 11px;
+  border-radius: 10px;
+}
+
+.nav button.active {
+  background: #252747;
+  color: #b7adff;
+}
+
+.nav span {
+  display: block;
+  font-size: 19px;
+  margin-bottom: 4px;
+}
+
+#message {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 10px;
+  text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div>
+    <div class="brand">◎ Solana Scanner</div>
+    <div class="subtitle">ماسح العملات والمحاكاة</div>
+  </div>
+  <div class="badge">🧪 Paper Trading</div>
+</header>
+
+<section id="dashboard">
+  <div class="card balance">
+    <div class="label">💰 رصيد المحاكاة</div>
+    <div class="amount" id="balance">$100.00</div>
+    <div class="label">التداول الحقيقي مغلق</div>
+  </div>
+
+  <div class="grid">
+    <div class="stat">
+      <div class="stat-icon">💵</div>
+      <div class="label">النقد المتاح</div>
+      <div class="stat-value" id="cash">$100.00</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-icon">📊</div>
+      <div class="label">الربح / الخسارة</div>
+      <div class="stat-value red" id="pnl">$0.00</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-icon">🔓</div>
+      <div class="label">الصفقات المفتوحة</div>
+      <div class="stat-value" id="open">—</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-icon">📕</div>
+      <div class="label">الصفقات المغلقة</div>
+      <div class="stat-value" id="closed">—</div>
+    </div>
+  </div>
+
+  <h2>🪙 الصفقات المفتوحة</h2>
+  <div class="card">
+    <div id="positions" class="empty">
+      في انتظار ربط بيانات المحاكاة...
+    </div>
+  </div>
+
+  <button class="primary" onclick="refreshData()">
+    🔄 تحديث البيانات
+  </button>
+
+  <div id="message">
+    الواجهة جاهزة؛ لم يتم ربط بيانات البوت بعد.
+  </div>
+
+  <div class="notice">
+    🧪 محاكاة تعليمية فقط<br>
+    لا يوجد تنفيذ تداول حقيقي.
+  </div>
+</section>
+
+<section id="scanner" hidden>
+  <h2>🔎 ماسح عملات Solana</h2>
+  <div class="card">
+    <div class="empty">
+      سيتم عرض نتائج الفحص الحقيقية بعد ربط الواجهة بمحرك البوت.
+    </div>
+  </div>
+</section>
+
+<section id="history" hidden>
+  <h2>📜 سجل الصفقات</h2>
+  <div class="card">
+    <div class="empty">
+      سيتم عرض سجل الصفقات بعد ربط بيانات التخزين.
+    </div>
+  </div>
+</section>
+
+<section id="settings" hidden>
+  <h2>⚙️ الإعدادات</h2>
+  <div class="card">
+    <div class="coin-name">وضع التشغيل</div>
+    <div class="subtitle">محاكاة فقط — التداول الحقيقي مغلق</div>
+  </div>
+  <div class="card">
+    <div class="coin-name">مصدر البيانات</div>
+    <div class="subtitle">سيتم ربطه ببوت Telegram الحالي.</div>
+  </div>
+</section>
+
+<nav class="nav">
+  <button class="active" onclick="showPage('dashboard',this)">
+    <span>🏠</span>الرئيسية
+  </button>
+  <button onclick="showPage('scanner',this)">
+    <span>🔎</span>الماسح
+  </button>
+  <button onclick="showPage('history',this)">
+    <span>📜</span>السجل
+  </button>
+  <button onclick="showPage('settings',this)">
+    <span>⚙️</span>الإعدادات
+  </button>
+</nav>
+
+<script>
+const tg = window.Telegram?.WebApp;
+
+if (tg) {
+  tg.ready();
+  tg.expand();
+}
+
+function showPage(id, button) {
+  document.querySelectorAll("body > section").forEach(section => {
+    section.hidden = section.id !== id;
+  });
+
+  document.querySelectorAll(".nav button").forEach(item => {
+    item.classList.remove("active");
+  });
+
+  button.classList.add("active");
+}
+
+async function refreshData() {
+  const message = document.getElementById("message");
+  message.textContent =
+    "الواجهة جاهزة، لكن الاتصال ببيانات البوت لم يُفعّل بعد.";
+}
+</script>
+
+</body>
+</html>
