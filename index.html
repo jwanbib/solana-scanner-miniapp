@@ -412,6 +412,39 @@ async function refreshData() {
 }
 
 
+const tokenInfoCache = new Map();
+
+async function getTokenInfo(mint) {
+  if (tokenInfoCache.has(mint)) return tokenInfoCache.get(mint);
+
+  const fallback = { name: "Solana Token", symbol: "UNKNOWN", price: null };
+  try {
+    const r = await fetch(
+      "https://api.dexscreener.com/latest/dex/tokens/" + encodeURIComponent(mint),
+      { cache: "no-store" }
+    );
+    if (!r.ok) return fallback;
+
+    const data = await r.json();
+    const pairs = (data.pairs || [])
+      .filter(pair => pair.chainId === "solana" && pair.baseToken?.address === mint)
+      .sort((a, b) => (Number(b.liquidity?.usd) || 0) - (Number(a.liquidity?.usd) || 0));
+
+    if (!pairs.length) return fallback;
+
+    const pair = pairs[0];
+    const info = {
+      name: pair.baseToken.name || fallback.name,
+      symbol: pair.baseToken.symbol || fallback.symbol,
+      price: pair.priceUsd ? Number(pair.priceUsd) : null
+    };
+    tokenInfoCache.set(mint, info);
+    return info;
+  } catch (_) {
+    return fallback;
+  }
+}
+
 async function refreshSignals() {
   const box = document.getElementById("signals");
   try {
@@ -432,23 +465,40 @@ async function refreshSignals() {
       return;
     }
 
-    data.signals.forEach(item => {
+    for (const item of data.signals.slice(0, 20)) {
       const card = document.createElement("div");
       card.className = "position-item";
 
       const title = document.createElement("h3");
       title.textContent = "🪙 " + (item.mint || "عنوان غير متوفر");
 
-      const details = document.createElement("div");
-      details.textContent =
-        "التقييم: " + (item.score ?? "—") +
-        " | السعر: " + (item.price == null ? "—" : Number(item.price).toPrecision(8)) +
-        " | الوقت: " + (item.ts || "—");
+      const info = await getTokenInfo(item.mint);
+      const name = document.createElement("p");
+      name.textContent = "العملة: " + info.name + " (" + info.symbol + ")";
 
-      card.append(title, details);
+      const price = info.price ?? (item.price == null ? null : Number(item.price));
+      const details = document.createElement("p");
+      details.textContent =
+        "⭐ التقييم: " + (item.score ?? "—") + "/100" +
+        " | 💵 السعر: " + (price == null ? "غير متوفر" : "$" + price.toPrecision(8));
+
+      const time = document.createElement("p");
+      const date = item.ts ? new Date(item.ts) : null;
+      time.textContent = "🕒 الاكتشاف: " +
+        (date && !Number.isNaN(date.getTime())
+          ? date.toLocaleString("ar-MA")
+          : (item.ts || "غير معروف"));
+
+      const link = document.createElement("a");
+      link.href = "https://dexscreener.com/solana/" + encodeURIComponent(item.mint);
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "📈 فتح الرسم البياني في DexScreener";
+
+      card.append(title, name, details, time, link);
       box.appendChild(card);
-    });
-  } catch (error) {
+    }
+  } catch (_) {
     box.replaceChildren();
     const message = document.createElement("div");
     message.className = "empty";
@@ -456,7 +506,6 @@ async function refreshSignals() {
     box.appendChild(message);
   }
 }
-
 // تحديث بيانات المحاكاة تلقائياً كل 10 ثوانٍ
 refreshData();
 refreshSignals();
