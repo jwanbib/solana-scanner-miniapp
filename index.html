@@ -411,6 +411,9 @@ async function refreshData() {
       "⚠️ تعذر الاتصال بالبيانات المحلية. تأكد أن API تعمل على الهاتف.";
   }
 }
+
+// تحديث بيانات المحاكاة تلقائياً كل 10 ثوانٍ
+setInterval(refreshData, 10000);
 </script>
 
 </body>
