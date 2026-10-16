@@ -278,11 +278,10 @@ button {
 
 <section id="scanner" hidden>
   <h2>🔎 ماسح عملات Solana</h2>
-  <div class="card">
-    <div class="empty">
-      سيتم عرض نتائج الفحص الحقيقية بعد ربط الواجهة بمحرك البوت.
-    </div>
+  <div id="signals" class="card">
+    <div class="empty">⏳ جارٍ تحميل العملات المكتشفة...</div>
   </div>
+  <button class="primary" onclick="refreshSignals()">🔄 تحديث العملات</button>
 </section>
 
 <section id="history" hidden>
@@ -412,9 +411,59 @@ async function refreshData() {
   }
 }
 
+
+async function refreshSignals() {
+  const box = document.getElementById("signals");
+  try {
+    const response = await fetch(
+      "https://suggestions-bra-dylan-surveys.trycloudflare.com/api/signals",
+      { cache: "no-store" }
+    );
+    if (!response.ok) throw new Error("HTTP " + response.status);
+
+    const data = await response.json();
+    box.replaceChildren();
+
+    if (!data.signals || data.signals.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "📭 لا توجد عملات محفوظة في سجل الإشارات حتى الآن.";
+      box.appendChild(empty);
+      return;
+    }
+
+    data.signals.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "position-item";
+
+      const title = document.createElement("h3");
+      title.textContent = "🪙 " + (item.mint || "عنوان غير متوفر");
+
+      const details = document.createElement("div");
+      details.textContent =
+        "التقييم: " + (item.score ?? "—") +
+        " | السعر: " + (item.price == null ? "—" : Number(item.price).toPrecision(8)) +
+        " | الوقت: " + (item.ts || "—");
+
+      card.append(title, details);
+      box.appendChild(card);
+    });
+  } catch (error) {
+    box.replaceChildren();
+    const message = document.createElement("div");
+    message.className = "empty";
+    message.textContent = "⚠️ تعذر تحميل الإشارات. تحقق من تشغيل API ونفق Cloudflare.";
+    box.appendChild(message);
+  }
+}
+
 // تحديث بيانات المحاكاة تلقائياً كل 10 ثوانٍ
+refreshData();
+refreshSignals();
 setInterval(refreshData, 10000);
+setInterval(refreshSignals, 10000);
 </script>
 
 </body>
 </html>
+
